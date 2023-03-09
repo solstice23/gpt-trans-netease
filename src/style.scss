@@ -1,0 +1,99 @@
+body.can-genereate-gpt-translation {
+	.generate-gpt-translation-btn {
+		display: flex !important;
+	}
+}
+
+
+.gpt-task-ui {
+    position: fixed;
+    z-index: 99999;
+    left: 20px;
+    bottom: calc(var(--bottombar-height, 72px) + 15px);
+}
+.gpt-task-ui {
+    position: fixed;
+    z-index: 99999;
+    left: 20px;
+    bottom: calc(var(--bottombar-height, 72px) + 10px);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    font-size: 14px;
+}
+.gpt-task-ui-item {
+    width: fit-content;
+}
+.gpt-task-ui-item-inner {
+	margin-top: 5px;
+	transition: opacity .25s ease;
+    background: #00000066;
+    backdrop-filter: blur(16px);
+    padding: 10px 15px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+	gap: 10px;
+    max-width: 50vw;
+	animation: gpt-ui-fade-in .25s ease;
+	&:not(:hover) {
+		//opacity: 0.85;
+	}
+}
+.gpt-task-ui-item-logo {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+.gpt-task-ui-item-info {
+    min-width: 150px;
+    margin-left: 2px;
+	.gpt-task-ui-item-name {
+		font-size: 120%;
+		margin-bottom: 5px;
+	}
+	.gpt-task-ui-item-status {
+		min-height: 16px;
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		.gpt-task-ui-item-status-error {
+			color: #ffa6a6;
+		}
+	}
+	.gpt-task-ui-item-status-progress {
+		background: #ffffff1a;
+		height: 6px;
+		border-radius: 100px;
+		overflow: hidden;
+		position: relative;
+		.gpt-task-ui-item-status-progress-inner {
+			position: absolute;
+			left: 0;
+			top: 0;
+			bottom: 0;
+			background: #fff;
+			border-radius: 100px;
+			transition: width .3s ease;
+		}
+	}
+}
+
+.gpt-task-ui-item-close-button {
+    background: transparent;
+    border: none;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+@keyframes gpt-ui-fade-in {
+	0% {
+		opacity: 0;
+	}
+	100% {
+		opacity: 1;
+	}
+}
