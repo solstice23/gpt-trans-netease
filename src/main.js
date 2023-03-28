@@ -2,8 +2,15 @@ import './style.scss'
 import { initUI } from './ui.js'
 import { getChatCompletionStream } from './api.js'
 import { Settings } from './settings.js'
+import { getSetting } from './utils.js'
 import { createRoot } from 'react-dom/client'
 
+const getModelDisplayName = (model) => {
+	return {
+		'gpt-3.5-turbo': 'GPT-3.5-Turbo',
+		'gpt-4': 'GPT-4',
+	}[model] ?? 'GPT';
+}
 const parseEventSource = (data) => {
 	const result = data
 		.split('\n\n')
@@ -25,6 +32,7 @@ const parseEventSource = (data) => {
 };
 
 const getGPTTranslation = async (originalLyrics, onStream, onDone) => {
+	const model = getSetting('model', 'gpt-3.5-turbo');
 	const encodedLyrics = originalLyrics.map((x, i) => `${i+1}. ${x.trim()}`).join('\n');
 	//console.log('encodedLyrics', encodedLyrics);
 	const stream = await getChatCompletionStream([
@@ -50,7 +58,7 @@ const getGPTTranslation = async (originalLyrics, onStream, onDone) => {
 		//console.log(resultString);
 		onStream(resultString);
 	}
-	onDone();
+	onDone(model);
 }
 const getLocalGPTTranslation = async (lyrics, onStream, onDone) => {
 	onStream(lyrics);
@@ -116,8 +124,22 @@ const onLyricsUpdate = async (e) => {
 	const songName = betterncm.ncm.getPlaying().title;
 	const lyrics = e.detail.lyrics;
 
-	const localLyrics = await getLocalLyrics(hash);
-	//console.log('local', localLyrics);
+	let localLyrics = await getLocalLyrics(hash);
+	if (localLyrics) {
+		try {
+			localLyrics = JSON.parse(localLyrics);
+		} catch {
+			localLyrics = {
+				model: 'gpt-3.5-turbo',
+				GPTResponse: localLyrics,
+				promptVersion: 1,
+			}
+		}
+	}
+	
+	const model = localLyrics?.model ?? getSetting('model', 'gpt-3.5-turbo');
+	
+	console.log('local', localLyrics);
 
 	let curIndex = 0;
 	let buffer = '\n', fullGPTResponse = '';
@@ -136,27 +158,27 @@ const onLyricsUpdate = async (e) => {
 				}
 			} else {
 				if (mapping[curIndex] && lyrics[mapping[curIndex]]) {
-					lyrics[mapping[curIndex]].translatedLyric = ((lyrics[mapping[curIndex]].translatedLyric ?? '') + char).trim();
+					lyrics[mapping[curIndex]].translatedLyric = ((lyrics[mapping[curIndex]].translatedLyric ?? '') + char).trimStart();
 				}
 			}
 		}
 		if (window.currentLyrics?.hash === hash) {
 			window.currentLyrics.lyrics = lyrics;
 			window.currentLyrics.amend = true;
-			window.currentLyrics.contributors.translation = { name: 'ChatGPT' }
+			window.currentLyrics.contributors.translation = { name: getModelDisplayName(model) };
 			document.dispatchEvent(new CustomEvent('lyrics-updated', {detail: window.currentLyrics}));
 		}
 		//console.log(fullGPTResponse);
 	}
-	const onDone = async () => {
+	const onDone = async (model) => {
 		//console.log('done');
 		if (!localLyrics) {
-			await saveLocalLyrics(hash, fullGPTResponse);
+			await saveLocalLyrics(hash, fullGPTResponse, model);
 		}
 		document.dispatchEvent(new CustomEvent('gpt-task-done', { detail: { taskID }}));
 	}
 	if (localLyrics) {
-		await getLocalGPTTranslation(localLyrics, onStream, onDone);
+		await getLocalGPTTranslation(localLyrics.GPTResponse, onStream, onDone);
 		return;
 	}
 	document.body.classList.add('can-genereate-gpt-translation');
@@ -194,10 +216,15 @@ const onLyricsUpdate = async (e) => {
 	//await simulateGPTTranslation(originalLyrics, onStream, onDone);
 };
 
-const saveLocalLyrics = async (hash, lyrics) => {
+const saveLocalLyrics = async (hash, fullGPTResponse, model) => {
+	const content = JSON.stringify({
+		model,
+		GPTResponse: fullGPTResponse.trim(),
+		promptVersion: 1
+	});
 	await betterncm.fs.mkdir('gpt-translated-lyrics');
 	await betterncm.fs.writeFile(`gpt-translated-lyrics/${hash}.txt`, 
-		new Blob([lyrics], {
+		new Blob([content], {
 			type: 'text/plain'
 		})
 	);
