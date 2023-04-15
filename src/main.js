@@ -79,10 +79,13 @@ const simulateGPTTranslation = async (originalLyrics, onStream, onDone) => {
 }
 
 const shouldTranslate = (originalLyrics) => {
-	const hasChinese = originalLyrics.some((x) => /[\u4e00-\u9fa5]/.test(x));
-	const hasJapanese = originalLyrics.some((x) => /[\u3040-\u30ff]/.test(x));
-	const hasKorean = originalLyrics.some((x) => /[\uac00-\ud7a3]/.test(x));
-	const hasEnglish = originalLyrics.some((x) => /[a-zA-Z]/.test(x));
+	const filteredLyrics = originalLyrics.filter((x) => {
+		return !/^作.+\s*[:：]/.test(x.trim()) && !/^编曲\s*[:：]/.test(x.trim());
+	});
+	const hasChinese = filteredLyrics.some((x) => /[\u4e00-\u9fa5]/.test(x));
+	const hasJapanese = filteredLyrics.some((x) => /[\u3040-\u30ff]/.test(x));
+	const hasKorean = filteredLyrics.some((x) => /[\uac00-\ud7a3]/.test(x));
+	const hasEnglish = filteredLyrics.some((x) => /[a-zA-Z]/.test(x));
 	if (hasChinese) {
 		return (hasJapanese || hasKorean);
 	} else {
@@ -105,8 +108,8 @@ const onLyricsUpdate = async (e) => {
 	for (let index in e.detail.lyrics) {
 		const line = e.detail.lyrics[index];
 		if (!line?.originalLyric?.trim()) continue;
-		if (/^作.+[:：]/.test(line.originalLyric.trim())) continue;
-		if (/^编曲[:：]/.test(line.originalLyric.trim())) continue;
+		if (/^作.+\s*[:：]/.test(line.originalLyric.trim())) continue;
+		if (/^编曲\s*[:：]/.test(line.originalLyric.trim())) continue;
 
 		originalLyrics.push(line.originalLyric.trim());
 		mapping.push(index);
@@ -139,7 +142,7 @@ const onLyricsUpdate = async (e) => {
 	
 	const model = localLyrics?.model ?? getSetting('model', 'gpt-3.5-turbo');
 	
-	console.log('local', localLyrics);
+	console.log('local gpt-translated lyrics', localLyrics);
 
 	let curIndex = 0;
 	let buffer = '\n', fullGPTResponse = '';

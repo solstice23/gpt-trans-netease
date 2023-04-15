@@ -71,7 +71,6 @@ export function Settings(props) {
 									label="模型"
 									onChange={(e) => {
 										setModel(e.target.value);
-										console.log(e.target.value);
 										setSetting('model', e.target.value);
 									}}
 								>
